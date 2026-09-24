@@ -1,0 +1,111 @@
+{
+  "name": "Project C - AD Credential Access Chain - Detection Coverage",
+  "versions": {
+    "attack": "19",
+    "navigator": "5.3.2",
+    "layer": "4.5"
+  },
+  "domain": "enterprise-attack",
+  "description": "Purple team results from Caldera 'AD Credential Access Chain' adversary profile run against the domain lab. Colors indicate whether detection-as-code-repo Sigma rules fired for each executed technique.",
+  "filters": {
+    "platforms": [
+      "Windows",
+      "Linux"
+    ]
+  },
+  "sorting": 0,
+  "layout": {
+    "layout": "side",
+    "aggregateFunction": "average",
+    "showID": true,
+    "showName": true,
+    "showAggregateScores": false,
+    "countUnscored": false
+  },
+  "hideDisabled": false,
+  "techniques": [
+    {
+      "techniqueID": "T1110.003",
+      "tactic": "credential-access",
+      "color": "#8BC34A",
+      "score": 100,
+      "comment": "Password Spraying via Kerbrute. Detected — Sigma rule fired on repeated Kerberos AS-REQ failures against multiple accounts.",
+      "enabled": true,
+      "metadata": [
+        { "name": "Tool", "value": "Kerbrute (custom Caldera ability)" },
+        { "name": "Status", "value": "Detected" }
+      ]
+    },
+    {
+      "techniqueID": "T1558.003",
+      "tactic": "credential-access",
+      "color": "#8BC34A",
+      "score": 100,
+      "comment": "Kerberoasting via Impacket GetUserSPNs.py. Detected — Sigma rule fired on RC4 (etype 23) TGS-REQ pattern.",
+      "enabled": true,
+      "metadata": [
+        { "name": "Tool", "value": "Impacket GetUserSPNs.py (custom Caldera ability)" },
+        { "name": "Status", "value": "Detected" }
+      ]
+    },
+    {
+      "techniqueID": "T1558.004",
+      "tactic": "credential-access",
+      "color": "#8BC34A",
+      "score": 100,
+      "comment": "AS-REP Roasting via Impacket GetNPUsers.py. Detected — Sigma rule fired on AS-REQ without preauth for accounts with UF_DONT_REQUIRE_PREAUTH.",
+      "enabled": true,
+      "metadata": [
+        { "name": "Tool", "value": "Impacket GetNPUsers.py (custom Caldera ability)" },
+        { "name": "Status", "value": "Detected" }
+      ]
+    },
+    {
+      "techniqueID": "T1003.006",
+      "tactic": "credential-access",
+      "color": "#8BC34A",
+      "score": 100,
+      "comment": "DCSync via Impacket secretsdump.py. Detected — Sigma rule fired on DS-Replication-Get-Changes-All request from a non-DC source.",
+      "enabled": true,
+      "metadata": [
+        { "name": "Tool", "value": "Impacket secretsdump.py (custom Caldera ability)" },
+        { "name": "Status", "value": "Detected" }
+      ]
+    },
+    {
+      "techniqueID": "T1557.001",
+      "tactic": "credential-access",
+      "color": "#F44336",
+      "score": 0,
+      "comment": "LLMNR/NBT-NS Poisoning via Responder (manual, not run through Caldera — Stockpile's only option, Inveigh, is Windows-only). KNOWN GAP: zero Sysmon Event 3/22 visibility. Negative control carried over from elk-siem-lab findings.",
+      "enabled": true,
+      "metadata": [
+        { "name": "Tool", "value": "Responder (manual, elk-siem-lab)" },
+        { "name": "Status", "value": "Undetected — known gap" }
+      ]
+    }
+  ],
+  "gradient": {
+    "colors": [
+      "#F44336",
+      "#FFEB3B",
+      "#8BC34A"
+    ],
+    "minValue": 0,
+    "maxValue": 100
+  },
+  "legendItems": [
+    { "label": "Detected", "color": "#8BC34A" },
+    { "label": "Partially Detected", "color": "#FFEB3B" },
+    { "label": "Undetected / Gap", "color": "#F44336" }
+  ],
+  "metadata": [
+    { "name": "Adversary Profile", "value": "AD Credential Access Chain (Caldera)" },
+    { "name": "Target", "value": "Domain lab (Kali agent, group red)" },
+    { "name": "Detection Source", "value": "detection-as-code-repo (Sigma rules compiled to Elastic/KQL)" }
+  ],
+  "showTacticRowBackground": true,
+  "tacticRowBackground": "#dddddd",
+  "selectTechniquesAcrossTactics": true,
+  "selectSubtechniquesWithParent": false
+}
