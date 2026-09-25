@@ -2,7 +2,7 @@
 
 ## 1. Objective & Scope
 
-This exercise validates the Sigma rules built in [Project B (detection-as-code-repo)](../detection-as-code-repo) against live, automated attack execution, rather than the manually-run hunt queries they were originally built from.
+This exercise validates the Sigma rules built in [(detection-as-code-repo)](../detection-as-code-repo) against live, automated attack execution, rather than the manually-run hunt queries they were originally built from.
 
 **Scope:** 5 techniques within the Credential Access tactic (TA0006), chained together as a single adversary profile and executed via Caldera.
 
