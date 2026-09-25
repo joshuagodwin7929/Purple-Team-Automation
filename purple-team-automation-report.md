@@ -59,7 +59,7 @@ LLMNR/NBT-NS poisoning remains a confirmed blind spot. This matters because Resp
 
 **Root cause:** Sysmon is not configured to log Event ID 3 (Network Connection) or Event ID 22 (DNS Query) on the monitored endpoint. This same gap was previously identified in elk-siem-lab and is documented there as a blocked dependency for a related network-layer detection effort (Project A).
 
-## 6. Recommendations / Next Steps
+## 6. Recommendations 
 
 1. **Fix Sysmon configuration** to enable Event ID 3 and 22 logging on relevant endpoints.
 2. **Write and test a new Sigma rule** for LLMNR/NBT-NS poisoning once that telemetry is available, following the same tuning process (deliberate false-positive testing) used for the Kerberoasting and DCSync rules in Project B.
