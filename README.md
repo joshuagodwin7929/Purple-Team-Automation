@@ -23,7 +23,7 @@ Purple-Team-Automation/
 ├── adversary-profiles/                 The chained adversary profile used in the operation
 ├── validation/                         Kibana evidence per technique + the LLMNR known-gap writeup
 ├── attack-navigator-heatmap.json       ATT&CK Navigator layer, load at mitre-attack.github.io/attack-navigator
-├── purple-team-automation-report.md                 Full write-up: scope, methodology, results, gap analysis
+├── purple-team-automation-report.md    Full write-up: scope, methodology, results, gap analysis
 └── README.md                           This file
 ```
 
@@ -92,7 +92,7 @@ four custom abilities in the order an opportunistic internal attacker
 would typically attempt them:
 
 ```
-Password Spray (Kerbrute)
+    → Password Spray (Kerbrute)
     → Kerberoasting (GetUserSPNs.py)
     → AS-REP Roasting (GetNPUsers.py)
     → DCSync (secretsdump.py)
