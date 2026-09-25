@@ -10,8 +10,8 @@ heatmap to visualize coverage.
 ## Why Caldera over Atomic Red Team
 
 Caldera was chosen over Atomic Red Team for this project because it
-provides a full C2 framework — agents, adversary profiles, and chained
-multi-step operations — rather than single, isolated technique execution.
+provides a full C2 framework agents, adversary profiles, and chained
+multi-step operations rather than single, isolated technique execution.
 This matches the goal of this project more closely: not just "did this one
 technique get detected," but "does a realistic, ordered attack *chain*
 survive our current detection stack, start to finish."
@@ -23,7 +23,7 @@ Purple-Team-Automation/
 ├── abilities/                          Custom Caldera ability YAMLs
 ├── adversary-profiles/                 The chained adversary profile used in the operation
 ├── validation/                         Kibana evidence per technique + the LLMNR known-gap writeup
-├── attack-navigator-heatmap.json       ATT&CK Navigator layer — load at mitre-attack.github.io/attack-navigator
+├── attack-navigator-heatmap.json       ATT&CK Navigator layer load at mitre-attack.github.io/attack-navigator
 ├── project-c-report.md                 Full write-up: scope, methodology, results, gap analysis
 └── README.md                           This file
 ```
@@ -41,7 +41,7 @@ out of the box.
 - My initial build appeared to complete but silently produced no image, so
   I had to do a clean rebuild.
 - The container crash-looped on a missing pre-built Vue frontend
-  (`plugins/magma/dist/assets/`) — I traced this to a full-directory Docker
+  (`plugins/magma/dist/assets/`). I traced this to a full-directory Docker
   volume mount in `docker-compose.yml` overwriting the image's compiled
   frontend with uncompiled host source. Fixed by removing the
   full-directory mount.
@@ -93,14 +93,14 @@ four custom abilities in the order an opportunistic internal attacker
 would typically attempt them:
 
 ```
-Password Spray (Kerbrute)
+    → Password Spray (Kerbrute)
     → Kerberoasting (GetUserSPNs.py)
     → AS-REP Roasting (GetNPUsers.py)
     → DCSync (secretsdump.py)
 ```
 
 LLMNR/NBT-NS poisoning (T1557.001) was deliberately excluded from the
-Caldera profile — see [`validation/llmnr-known-gap.md`](validation/llmnr-known-gap.md)
+Caldera profile, see [`validation/llmnr-known-gap.md`](validation/llmnr-known-gap.md)
 for why, and how it's still included as a known-gap negative control.
 
 ## Results
