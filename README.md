@@ -102,6 +102,38 @@ LLMNR/NBT-NS poisoning (T1557.001) was deliberately excluded from the
 Caldera profile. See [`validation/llmnr-known-gap.md`](validation/llmnr-known-gap.md)
 for why, and how it's still included as a known-gap negative control.
 
+## How to reproduce
+
+> Run only against a lab you own and are authorised to test.
+
+### Prerequisites
+- AD lab: Windows Server DC + Windows 10 client
+- Telemetry: Sysmon + Winlogbeat shipping to Elastic Stack (Kibana)
+- Detections: Sigma rules from the Detection-Engineering repo, compiled to Kibana rules
+- Caldera server: Ubuntu VM, Docker + Docker Compose, Caldera v5.0.0
+- Attacker host: Kali VM with Impacket and Kerbrute installed
+
+### Steps
+1. **Deploy Caldera.** Clone Caldera v5.0.0 and, before building, set `VITE_CALDERA_URL`
+   in `plugins/magma/.env` to the VM's real IP (it is baked in at build time and
+   `conf/local.yml` will not override it). Build with Docker Compose. Do not mount the
+   whole project directory as a volume, or it overwrites the compiled frontend.
+2. **Import content.** Copy the YAMLs from `abilities/` into Caldera's abilities
+   directory and `adversary-profiles/` into its adversaries directory, then restart.
+   Confirm **AD Credential Access Chain** appears under Adversaries.
+3. **Deploy the agent.** Deploy a Sandcat (Linux) agent on the Kali VM in group `red`,
+   using the UI's agent-deploy panel.
+4. **Run the operation** using the AD Credential Access Chain adversary against group
+   `red`. The chain runs: password spray, Kerberoasting, AS-REP Roasting, DCSync. Each
+   ability captures raw output (no `parsers:` block, since Caldera v5 has no parser for
+   raw Impacket output).
+5. **Validate.** For each technique, check Kibana for the matching detection in the
+   operation's time window and record it in `validation/detection-results.md`. Load
+   `attack-navigator-heatmap.json` into ATT&CK Navigator for coverage.
+
+LLMNR/NBT-NS poisoning (T1557.001) is deliberately excluded. See
+`validation/llmnr-known-gap.md`.
+
 ## Results
 
 All four executed techniques were confirmed detected against
