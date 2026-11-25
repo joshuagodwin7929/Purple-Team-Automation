@@ -6,7 +6,7 @@
     "layer": "4.5"
   },
   "domain": "enterprise-attack",
-  "description": "Purple team results from Caldera 'AD Credential Access Chain' adversary profile run against the domain lab. Colors indicate whether detection-as-code-repo Sigma rules fired for each executed technique.",
+  "description": "Results of the Caldera 'AD Credential Access Chain' operation (22 Sep 2026), revised 25 Nov 2026. Green means a deployed rule raised an alert. Yellow means the attack's events reached Elastic but no rule alerted. Red means a gap: no events, or a rule that cannot match the attack. No technique is green yet.",
   "filters": {
     "platforms": [
       "Windows",
@@ -27,49 +27,73 @@
     {
       "techniqueID": "T1110.003",
       "tactic": "credential-access",
-      "color": "#8BC34A",
-      "score": 100,
-      "comment": "Password Spraying via Kerbrute. Detected, Sigma rule fired on repeated Kerberos AS-REQ failures against multiple accounts.",
+      "color": "#F44336",
+      "score": 0,
+      "comment": "Password Spraying via Kerbrute. GAP. Events reached Elastic as 4771 (28 hits), but no rule was deployed, and the Sigma rule counts 4625, which Kerbrute never produces.",
       "enabled": true,
       "metadata": [
-        { "name": "Tool", "value": "Kerbrute (custom Caldera ability)" },
-        { "name": "Status", "value": "Detected" }
+        {
+          "name": "Tool",
+          "value": "Kerbrute (custom Caldera ability)"
+        },
+        {
+          "name": "Status",
+          "value": "Gap: rule cannot match 4771"
+        }
       ]
     },
     {
       "techniqueID": "T1558.003",
       "tactic": "credential-access",
-      "color": "#8BC34A",
-      "score": 100,
-      "comment": "Kerberoasting via Impacket GetUserSPNs.py. Detected, Sigma rule fired on RC4 (etype 23) TGS-REQ pattern.",
+      "color": "#FFEB3B",
+      "score": 50,
+      "comment": "Kerberoasting via GetUserSPNs.py. Events reached Elastic as 4769 with RC4 0x17 (2 hits). No alerting rule was deployed. The tuned Sigma rule also allow-lists svc_sql, the account this operation roasts.",
       "enabled": true,
       "metadata": [
-        { "name": "Tool", "value": "Impacket GetUserSPNs.py (custom Caldera ability)" },
-        { "name": "Status", "value": "Detected" }
+        {
+          "name": "Tool",
+          "value": "Impacket GetUserSPNs.py (custom Caldera ability)"
+        },
+        {
+          "name": "Status",
+          "value": "Telemetry only, no alert"
+        }
       ]
     },
     {
       "techniqueID": "T1558.004",
       "tactic": "credential-access",
-      "color": "#8BC34A",
-      "score": 100,
-      "comment": "AS-REP Roasting via Impacket GetNPUsers.py. Detected, Sigma rule fired on AS-REQ without preauth for accounts with UF_DONT_REQUIRE_PREAUTH.",
+      "color": "#FFEB3B",
+      "score": 50,
+      "comment": "AS-REP Roasting via GetNPUsers.py. Events reached Elastic as 4768 with PreAuthType 0 for j.jenkins (8 hits). No alerting rule was deployed.",
       "enabled": true,
       "metadata": [
-        { "name": "Tool", "value": "Impacket GetNPUsers.py (custom Caldera ability)" },
-        { "name": "Status", "value": "Detected" }
+        {
+          "name": "Tool",
+          "value": "Impacket GetNPUsers.py (custom Caldera ability)"
+        },
+        {
+          "name": "Status",
+          "value": "Telemetry only, no alert"
+        }
       ]
     },
     {
       "techniqueID": "T1003.006",
       "tactic": "credential-access",
-      "color": "#8BC34A",
-      "score": 100,
-      "comment": "DCSync via Impacket secretsdump.py. Detected, Sigma rule fired on DS-Replication-Get-Changes-All request from a non-DC source.",
+      "color": "#FFEB3B",
+      "score": 50,
+      "comment": "DCSync via secretsdump.py. Events reached Elastic as 4662 (8 hits). The DCSync rule was deployed and ran 27 times on 22 Sep, but raised 0 alerts. Cause not yet found.",
       "enabled": true,
       "metadata": [
-        { "name": "Tool", "value": "Impacket secretsdump.py (custom Caldera ability)" },
-        { "name": "Status", "value": "Detected" }
+        {
+          "name": "Tool",
+          "value": "Impacket secretsdump.py (custom Caldera ability)"
+        },
+        {
+          "name": "Status",
+          "value": "Telemetry only, no alert"
+        }
       ]
     },
     {
@@ -80,8 +104,14 @@
       "comment": "LLMNR/NBT-NS Poisoning via Responder (manual, not run through Caldera, Stockpile's only option, Inveigh, is Windows-only). KNOWN GAP: zero Sysmon Event 3/22 visibility. Negative control carried over from elk-siem-lab findings.",
       "enabled": true,
       "metadata": [
-        { "name": "Tool", "value": "Responder (manual, elk-siem-lab)" },
-        { "name": "Status", "value": "Undetected, known gap" }
+        {
+          "name": "Tool",
+          "value": "Responder (manual, elk-siem-lab)"
+        },
+        {
+          "name": "Status",
+          "value": "Undetected, known gap"
+        }
       ]
     }
   ],
@@ -95,14 +125,32 @@
     "maxValue": 100
   },
   "legendItems": [
-    { "label": "Detected", "color": "#8BC34A" },
-    { "label": "Partially Detected", "color": "#FFEB3B" },
-    { "label": "Undetected / Gap", "color": "#F44336" }
+    {
+      "label": "Alert confirmed",
+      "color": "#8BC34A"
+    },
+    {
+      "label": "Telemetry only, no alert",
+      "color": "#FFEB3B"
+    },
+    {
+      "label": "Gap",
+      "color": "#F44336"
+    }
   ],
   "metadata": [
-    { "name": "Adversary Profile", "value": "AD Credential Access Chain (Caldera)" },
-    { "name": "Target", "value": "Domain lab (Kali agent, group red)" },
-    { "name": "Detection Source", "value": "detection-as-code-repo (Sigma rules compiled to Elastic/KQL)" }
+    {
+      "name": "Adversary Profile",
+      "value": "AD Credential Access Chain (Caldera)"
+    },
+    {
+      "name": "Target",
+      "value": "Domain lab (Kali agent, group red)"
+    },
+    {
+      "name": "Detection Source",
+      "value": "Detection-Engineering repo v0.2.0 (Sigma rules compiled to Elastic/KQL)"
+    }
   ],
   "showTacticRowBackground": true,
   "tacticRowBackground": "#dddddd",

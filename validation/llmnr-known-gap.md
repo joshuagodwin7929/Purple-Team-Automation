@@ -1,44 +1,25 @@
 # Known Gap: LLMNR/NBT-NS Poisoning (T1557.001)
 
-## Why this isn't in the Caldera operation
+## Why it isn't in the Caldera operation
 
-Stockpile's only ability covering LLMNR/NBT-NS poisoning relies on Inveigh,
-which is Windows/.NET-only. The Sandcat agent used in this lab runs on a
-Kali Linux host, so this ability cannot execute there. Rather than skip the
-technique entirely, it's carried into this project as a **known-gap
-negative control**, using an earlier manual finding from
-[elk-siem-lab](../../elk-siem-lab).
+Stockpile's only ability for LLMNR/NBT-NS poisoning uses Inveigh, which runs on Windows only. My Sandcat agent runs on Kali Linux, so it can't execute it. Instead of dropping the technique, I kept it as a known gap from an earlier manual test in my [AD + ELK lab](https://github.com/joshuagodwin7929/Cybersecurity-Labs/tree/main/03-Active-Directory-ELK-SIEM-Lab).
 
-## What was found
+## What I found
 
-Responder was run manually against the lab's broadcast segment to poison
-LLMNR/NBT-NS name resolution requests. The attack succeeded in capturing
-credentials, but **no corresponding detection fired**, because:
+I ran Responder on the lab network to poison LLMNR and NBT-NS name lookups. It captured NTLMv2 hashes, and nothing showed up in Elastic, because two Sysmon event types weren't firing on the monitored endpoint:
 
-- Sysmon Event ID 3 (Network Connection) is not enabled on the monitored endpoint
-- Sysmon Event ID 22 (DNS Query) is not enabled on the monitored endpoint
+- Event ID 3, network connection
+- Event ID 22, DNS query
 
-Without this telemetry, there's no event stream to build a Sigma rule
-against, so detection-as-code-repo does not (and cannot yet) include a rule
-for this technique.
+With no events coming in, there's nothing to write a rule against. That's why my Detection-Engineering repo has no rule for this technique.
 
 ## Why it matters
 
-LLMNR/NBT-NS poisoning is one of the most commonly exploited techniques in
-real internal penetration tests and red team engagements, it requires no
-prior credentials and is often the very first foothold technique attempted
-on a flat network. A complete inability to detect it is a higher-priority
-gap than any of the four Kerberos/AD techniques validated in this project,
-all of which fired successfully.
+LLMNR poisoning needs no credentials, and it's often the first thing an attacker tries on a flat internal network. Not being able to see it at all is a bigger gap than any of the four Kerberos and AD techniques in this operation.
 
-## Remediation path
+## How I'll close it
 
-1. Enable Sysmon Event ID 3 and 22 logging via Sysmon configuration on
-   affected endpoints.
-2. Re-run the Responder attack (or add a Windows-based Inveigh ability to
-   Caldera if a Windows agent becomes available in the lab).
-3. Build and tune a new Sigma rule for LLMNR/NBT-NS poisoning detection,
-   following the same false-positive testing process used for the
-   Kerberoasting and DCSync rules in detection-as-code-repo.
-4. Re-score this technique in the ATT&CK Navigator layer once detection is
-   confirmed.
+1. Fix the Sysmon configuration so Event IDs 3 and 22 are logged on the endpoints.
+2. Re-run Responder, or add an Inveigh ability if I add a Windows agent to the lab.
+3. Write a Sigma rule from the events I actually see, and test it against deliberate false positives as I did for the Kerberoasting and DCSync rules.
+4. Deploy it as an alerting rule, confirm it raises an alert, and update the heatmap.
