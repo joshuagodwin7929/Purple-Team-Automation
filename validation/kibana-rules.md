@@ -65,8 +65,10 @@ This deployed rule has no allow-list for `svc_sql`. The Sigma rule in Detection-
 | Action level | Warning |
 
 ```
-event.code:4768 and winlog.event_data.PreAuthType:"0"
+event.code:4768 and winlog.event_data.PreAuthType:"0" and winlog.event_data.SessionKeyEncryptionType:"0x17"
 ```
+
+The first version, without the `SessionKeyEncryptionType` condition, alerted on 25 November but also fired on normal logons by `j.jenkins`, which has pre-authentication disabled. The tuned version above drops those and raised an alert against the attack on 26 November at 01:42:07 UTC.
 
 ## 4. Password Spray - Kerberos Pre-Auth Failures
 
