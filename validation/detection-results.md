@@ -103,7 +103,7 @@ The rule searched `message:*1131f6ad-9c07-11d1-f79f-00c04fc2dcd2*`. `message` is
 ![Old query, 0 hits](evidence/09-retest-nov-2026/02-discover-old-wildcard-query-0-hits.png)
 ![Phrase query, 2 hits](evidence/09-retest-nov-2026/03-discover-phrase-query-2-hits.png)
 
-The DCSync write-up in my AD lab (Cybersecurity-Labs, Phase 5B) appears to treat "Last response: Succeeded" as proof the rule fired. That status only means the rule ran without errors. Given the query above could never match, that claim needs checking and probably the same correction.
+The DCSync write-up in my AD lab treated "Last response: Succeeded" as proof the rule fired. That status only means the rule ran without errors. I've since corrected it there: see the [Phase 5B correction](https://github.com/joshuagodwin7929/AD-Attack-Defense-Lab/blob/main/03-Active-Directory-ELK-SIEM-Lab/Phase-5-Detection-Engineering/5B-Closing-The-Detection-Gaps/Gap-1-DCSync-No-Audit-Trail/README.md#correction-november-2026).
 
 ### 2. The September events arrived 35 minutes late
 
