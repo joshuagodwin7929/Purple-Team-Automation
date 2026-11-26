@@ -6,7 +6,7 @@
     "layer": "4.5"
   },
   "domain": "enterprise-attack",
-  "description": "Purple team results from Caldera 'AD Credential Access Chain' adversary profile run against the domain lab. Colors indicate whether detection-as-code-repo Sigma rules fired for each executed technique.",
+  "description": "Caldera 'AD Credential Access Chain' detection coverage. Green: a deployed Kibana rule raised an alert during the November 2026 re-test. Red: gap. The original September version wrongly showed four green cells based on raw event searches; see validation/detection-results.md.",
   "filters": {
     "platforms": [
       "Windows",
@@ -29,11 +29,17 @@
       "tactic": "credential-access",
       "color": "#8BC34A",
       "score": 100,
-      "comment": "Password Spraying via Kerbrute. Detected, Sigma rule fired on repeated Kerberos AS-REQ failures against multiple accounts.",
+      "comment": "Password Spraying via Kerbrute. Alert at 25 Nov 2026 23:31:07 UTC. Rule: event.code:4771, count > 5 in 15 min across all documents. Cannot group by source IP yet (IP fields empty on 4771).",
       "enabled": true,
       "metadata": [
-        { "name": "Tool", "value": "Kerbrute (custom Caldera ability)" },
-        { "name": "Status", "value": "Detected" }
+        {
+          "name": "Tool",
+          "value": "Kerbrute (custom Caldera ability)"
+        },
+        {
+          "name": "Status",
+          "value": "Detected, alert confirmed"
+        }
       ]
     },
     {
@@ -41,11 +47,17 @@
       "tactic": "credential-access",
       "color": "#8BC34A",
       "score": 100,
-      "comment": "Kerberoasting via Impacket GetUserSPNs.py. Detected, Sigma rule fired on RC4 (etype 23) TGS-REQ pattern.",
+      "comment": "Kerberoasting via GetUserSPNs.py. Alert at 25 Nov 2026 04:58:45 UTC. Rule: 4769 with RC4 (0x17), excluding krbtgt and machine accounts.",
       "enabled": true,
       "metadata": [
-        { "name": "Tool", "value": "Impacket GetUserSPNs.py (custom Caldera ability)" },
-        { "name": "Status", "value": "Detected" }
+        {
+          "name": "Tool",
+          "value": "Impacket GetUserSPNs.py (custom Caldera ability)"
+        },
+        {
+          "name": "Status",
+          "value": "Detected, alert confirmed"
+        }
       ]
     },
     {
@@ -53,11 +65,17 @@
       "tactic": "credential-access",
       "color": "#8BC34A",
       "score": 100,
-      "comment": "AS-REP Roasting via Impacket GetNPUsers.py. Detected, Sigma rule fired on AS-REQ without preauth for accounts with UF_DONT_REQUIRE_PREAUTH.",
+      "comment": "AS-REP Roasting via GetNPUsers.py. Alert at 25 Nov 2026 05:02:06 UTC. Rule: 4768 with PreAuthType 0. Also alerted outside AS-REP activity; suspected normal logins by j.jenkins, not yet confirmed.",
       "enabled": true,
       "metadata": [
-        { "name": "Tool", "value": "Impacket GetNPUsers.py (custom Caldera ability)" },
-        { "name": "Status", "value": "Detected" }
+        {
+          "name": "Tool",
+          "value": "Impacket GetNPUsers.py (custom Caldera ability)"
+        },
+        {
+          "name": "Status",
+          "value": "Detected, alert confirmed"
+        }
       ]
     },
     {
@@ -65,11 +83,17 @@
       "tactic": "credential-access",
       "color": "#8BC34A",
       "score": 100,
-      "comment": "DCSync via Impacket secretsdump.py. Detected, Sigma rule fired on DS-Replication-Get-Changes-All request from a non-DC source.",
+      "comment": "DCSync via secretsdump.py. Alert at 25 Nov 2026 03:45:33 UTC. Rule: 4662 with the Get-Changes-All GUID as a phrase, excluding machine accounts. The September wildcard query could never match.",
       "enabled": true,
       "metadata": [
-        { "name": "Tool", "value": "Impacket secretsdump.py (custom Caldera ability)" },
-        { "name": "Status", "value": "Detected" }
+        {
+          "name": "Tool",
+          "value": "Impacket secretsdump.py (custom Caldera ability)"
+        },
+        {
+          "name": "Status",
+          "value": "Detected, alert confirmed"
+        }
       ]
     },
     {
@@ -80,8 +104,14 @@
       "comment": "LLMNR/NBT-NS Poisoning via Responder (manual, not run through Caldera, Stockpile's only option, Inveigh, is Windows-only). KNOWN GAP: zero Sysmon Event 3/22 visibility. Negative control carried over from elk-siem-lab findings.",
       "enabled": true,
       "metadata": [
-        { "name": "Tool", "value": "Responder (manual, elk-siem-lab)" },
-        { "name": "Status", "value": "Undetected, known gap" }
+        {
+          "name": "Tool",
+          "value": "Responder (manual, elk-siem-lab)"
+        },
+        {
+          "name": "Status",
+          "value": "Undetected, known gap"
+        }
       ]
     }
   ],
@@ -95,14 +125,32 @@
     "maxValue": 100
   },
   "legendItems": [
-    { "label": "Detected", "color": "#8BC34A" },
-    { "label": "Partially Detected", "color": "#FFEB3B" },
-    { "label": "Undetected / Gap", "color": "#F44336" }
+    {
+      "label": "Alert confirmed",
+      "color": "#8BC34A"
+    },
+    {
+      "label": "Telemetry only, no alert",
+      "color": "#FFEB3B"
+    },
+    {
+      "label": "Gap",
+      "color": "#F44336"
+    }
   ],
   "metadata": [
-    { "name": "Adversary Profile", "value": "AD Credential Access Chain (Caldera)" },
-    { "name": "Target", "value": "Domain lab (Kali agent, group red)" },
-    { "name": "Detection Source", "value": "detection-as-code-repo (Sigma rules compiled to Elastic/KQL)" }
+    {
+      "name": "Adversary Profile",
+      "value": "AD Credential Access Chain (Caldera)"
+    },
+    {
+      "name": "Target",
+      "value": "Domain lab (Kali agent, group red)"
+    },
+    {
+      "name": "Detection Source",
+      "value": "Kibana Elasticsearch query rules (validation/kibana-rules.md)"
+    }
   ],
   "showTacticRowBackground": true,
   "tacticRowBackground": "#dddddd",

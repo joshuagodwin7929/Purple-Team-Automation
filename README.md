@@ -1,160 +1,129 @@
 # Purple-Team-Automation
 
-Automated purple-team validation of the Sigma detection rules built in
-[detection-as-code-repo](../detection-as-code-repo), using
-[MITRE Caldera](https://github.com/mitre/caldera) to execute a chained
-Active Directory credential-access attack path against an existing domain
-lab, and an [ATT&CK Navigator](https://mitre-attack.github.io/attack-navigator/)
-heatmap to visualize coverage.
+By OKUNNUWA JOSHUA GODWIN | [LinkedIn](https://www.linkedin.com/in/okunnuwa-joshua-godwin)
 
-## Why Caldera over Atomic Red Team
+I used [MITRE Caldera](https://github.com/mitre/caldera) to run a chained Active Directory credential-access attack against my own domain lab, then checked whether the detections from my [Detection-Engineering](https://github.com/joshuagodwin7929/Detection-Engineering) repo caught it in Elastic. I also built an [ATT&CK Navigator](https://mitre-attack.github.io/attack-navigator/) layer to show the coverage.
 
-Caldera was chosen over Atomic Red Team for this project because it
-provides a full C2 framework, with agents, adversary profiles, and chained multi-step operations, rather than single, isolated technique execution.
-This matches the goal of this project more closely: not just "did this one
-technique get detected," but "does a realistic, ordered attack *chain*
-survive our current detection stack, start to finish."
-
-## Repo structure
-
-```
-Purple-Team-Automation/
-├── abilities/                          Custom Caldera ability YAMLs
-├── adversary-profiles/                 The chained adversary profile used in the operation
-├── validation/                         Kibana evidence per technique + the LLMNR known-gap writeup
-├── attack-navigator-heatmap.json       ATT&CK Navigator layer, load at mitre-attack.github.io/attack-navigator
-├── purple-team-automation-report.md    Full write-up: scope, methodology, results, gap analysis
-└── README.md                           This file
-```
-
-## What was built
-
-### Infrastructure
-I deployed a dedicated Caldera server via Docker Compose on a separate
-Ubuntu VM (`caldera-server`, `192.168.18.205`) on the same lab network as
-the existing AD domain lab, keeping it isolated from the ELK/SIEM stack.
-Caldera v5.0.0 came up with 2000 stock abilities and 29 stock adversaries
-out of the box.
-
-**Build issues I root-caused along the way:**
-- My initial build appeared to complete but silently produced no image, so
-  I had to do a clean rebuild.
-- The container crash-looped on a missing pre-built Vue frontend
-  (`plugins/magma/dist/assets/`). I traced this to a full-directory Docker
-  volume mount in `docker-compose.yml` overwriting the image's compiled
-  frontend with uncompiled host source. Fixed by removing the
-  full-directory mount.
-- I tried rebuilding the frontend at container runtime, but that failed
-  because the Dockerfile deliberately uninstalls `npm`/`nodejs` after the
-  image build to keep the final image slim.
-- After I finally got login working, the UI was still non-functional. The
-  compiled frontend had `localhost:8888` hardcoded as its API base, baked
-  in at Vue build time via `plugins/magma/.env` (`VITE_CALDERA_URL`), which
-  isn't controlled by `conf/local.yml`'s runtime `app.frontend.api_base_url`
-  setting. I fixed it by editing `.env` to the VM's real IP and rebuilding.
-- I also hit a separate disk-space failure, which I traced to an LVM
-  logical volume only using half of the VM's allocated disk. Fixed with
-  `lvextend -l +100%FREE` + `resize2fs`, plus reclaiming build-cache layers
-  via `docker system prune -a --volumes`.
-
-### Custom abilities
-Stockpile only ships a native ability for LSASS/Mimikatz-based credential
-dumping (T1003.001). The four techniques I needed for this project,
-Kerberoasting, AS-REP Roasting, Password Spraying, and DCSync, all
-required custom abilities that I built around Impacket (`GetUserSPNs.py`,
-`GetNPUsers.py`, `secretsdump.py`) and Kerbrute, since Stockpile's existing
-Kerberoasting abilities (Rubeus, WinPwn) are Windows/.NET-only and
-incompatible with this lab's Linux-based Sandcat agent.
-
-I ran into two build issues while authoring these:
-- Caldera v5's real ability schema uses purpose-built per-tool parser
-  modules (e.g. `plugins.stockpile.app.parsers.katz`) with
-  `source`/`edge`/`target` fields, not a generic regex `pattern` parser as
-  I'd originally assumed. This caused a silent
-  `TypeError('ParserConfig.__init__()')` on load. Since no built-in parser
-  exists for raw Impacket output, I dropped the `parsers:` block entirely
-  from all four abilities. Results are captured as raw output/hash files
-  and validated manually against Kibana (see `/validation`).
-- Two of my ability YAMLs (password spray, DCSync) were initially saved as
-  0-byte files after a `nano` paste silently failed. I caught this by
-  sanity-checking every file with `cat`/`wc -l` before restarting the
-  container.
-
-### Agent deployment
-I deployed a Sandcat agent (Linux, group `red`) onto the Kali VM
-(`192.168.18.70`), using the process name `splunkd` for OPSEC masquerading,
-and confirmed it came up alive and trusted, running as root with the
-`proc/sh` executor.
-
-### Adversary profile & operation
-I built the `AD Credential Access Chain` adversary profile to chain the
-four custom abilities in the order an opportunistic internal attacker
-would typically attempt them:
-
-```
-    → Password Spray (Kerbrute)
-    → Kerberoasting (GetUserSPNs.py)
-    → AS-REP Roasting (GetNPUsers.py)
-    → DCSync (secretsdump.py)
-```
-
-LLMNR/NBT-NS poisoning (T1557.001) was deliberately excluded from the
-Caldera profile. See [`validation/llmnr-known-gap.md`](validation/llmnr-known-gap.md)
-for why, and how it's still included as a known-gap negative control.
-
-## How to reproduce
-
-> Run only against a lab you own and are authorised to test.
-
-### Prerequisites
-- AD lab: Windows Server DC + Windows 10 client
-- Telemetry: Sysmon + Winlogbeat shipping to Elastic Stack (Kibana)
-- Detections: Sigma rules from the Detection-Engineering repo, compiled to Kibana rules
-- Caldera server: Ubuntu VM, Docker + Docker Compose, Caldera v5.0.0
-- Attacker host: Kali VM with Impacket and Kerbrute installed
-
-### Steps
-1. **Deploy Caldera.** Clone Caldera v5.0.0 and, before building, set `VITE_CALDERA_URL`
-   in `plugins/magma/.env` to the VM's real IP (it is baked in at build time and
-   `conf/local.yml` will not override it). Build with Docker Compose. Do not mount the
-   whole project directory as a volume, or it overwrites the compiled frontend.
-2. **Import content.** Copy the YAMLs from `abilities/` into Caldera's abilities
-   directory and `adversary-profiles/` into its adversaries directory, then restart.
-   Confirm **AD Credential Access Chain** appears under Adversaries.
-3. **Deploy the agent.** Deploy a Sandcat (Linux) agent on the Kali VM in group `red`,
-   using the UI's agent-deploy panel.
-4. **Run the operation** using the AD Credential Access Chain adversary against group
-   `red`. The chain runs: password spray, Kerberoasting, AS-REP Roasting, DCSync. Each
-   ability captures raw output (no `parsers:` block, since Caldera v5 has no parser for
-   raw Impacket output).
-5. **Validate.** For each technique, check Kibana for the matching detection in the
-   operation's time window and record it in `validation/detection-results.md`. Load
-   `attack-navigator-heatmap.json` into ATT&CK Navigator for coverage.
-
-LLMNR/NBT-NS poisoning (T1557.001) is deliberately excluded. See
-`validation/llmnr-known-gap.md`.
+If you only read one file, read the report: [`purple-team-automation-report.md`](purple-team-automation-report.md).
 
 ## Results
 
-All four executed techniques were confirmed detected against
-detection-as-code-repo's Sigma rules, cross-checked directly in Kibana.
-LLMNR/NBT-NS poisoning remains an open, documented gap.
+I ran a four-step Active Directory credential-access chain through Caldera and confirmed each step raised a real alert in Kibana:
 
-| Technique | Status |
-|---|---|
-| T1110.003 – Password Spraying | 🟢 Detected |
-| T1558.003 – Kerberoasting | 🟢 Detected |
-| T1558.004 – AS-REP Roasting | 🟢 Detected |
-| T1003.006 – DCSync | 🟢 Detected |
-| T1557.001 – LLMNR/NBT-NS Poisoning | 🔴 Gap |
+| Technique | Status | Alert (UTC) |
+|---|---|---|
+| T1110.003 Password Spraying | ✅ Alert | 25 Nov 2026, 23:31:07 |
+| T1558.003 Kerberoasting | ✅ Alert | 25 Nov 2026, 04:58:45 |
+| T1558.004 AS-REP Roasting | ✅ Alert | 25 Nov 2026, 05:02:06 |
+| T1003.006 DCSync | ✅ Alert | 25 Nov 2026, 03:45:33 |
+| T1557.001 LLMNR/NBT-NS Poisoning | ❌ Gap: no telemetry | n/a |
 
-Full detail: [`validation/detection-results.md`](validation/detection-results.md)
-Full write-up: [`purple-team-automation-report.md`](purple-team-automation-report.md)
-Interactive heatmap: [`attack-navigator-heatmap.json`](attack-navigator-heatmap.json)
+Rule definitions: [`validation/kibana-rules.md`](validation/kibana-rules.md). Evidence and full detail: [`validation/detection-results.md`](validation/detection-results.md).
+
+## What I got wrong first, and how I found it
+
+When I first published this repo in September, it said all four Sigma rules fired. They hadn't. What I'd actually checked was whether each attack's events reached Elastic, using raw searches like `event.code:4769`. That proves the telemetry exists. It doesn't prove a rule alerted.
+
+In November I went back to Kibana's Rules page. Only one detection, DCSync, had ever been deployed as an alerting rule, and it had raised 0 alerts in 57 runs. The other three only existed as Sigma files and saved queries.
+
+Fixing that turned up six separate problems in my lab. Each one alone was enough to stop an alert:
+
+1. **The DCSync query could never match.** It used a wildcard on the `message` field, which Elasticsearch splits into words at every hyphen, so a hyphenated GUID never matches. Old query: 0 hits. Phrase query: 2 hits.
+2. **The September events reached Elastic 35 minutes late,** after the rule's 5-minute window had already passed them.
+3. **Two copies of Winlogbeat were running,** a service and an older copy from July, so every event was shipped twice.
+4. **Winlogbeat was set to Manual,** so it stayed stopped after a reboot.
+5. **Kibana stopped running rules for 45 minutes** while the ELK VM was paused.
+6. **The password spray rule grouped on a field that's empty on 4771 events,** so it had nothing to count.
+
+I fixed each one and re-ran the attacks until every technique alerted. The detail and evidence for each is in [`validation/detection-results.md`](validation/detection-results.md#what-went-wrong-in-september-and-what-i-fixed).
+
+The main thing I took from this: a detection isn't coverage until it's deployed, running and has alerted on the real attack. A search that finds the events is a hunt, not a detection.
+
+## What I can't tell you yet
+
+- **Whether the AS-REP rule is noisy.** It also alerted twice when no AS-REP ability was running. My guess is that `j.jenkins` doesn't require pre-authentication, so every login by that account looks like AS-REP Roasting. I haven't confirmed it yet.
+- **Which host is spraying.** The password spray rule counts failures across the whole domain, because I couldn't group by source IP (problem 6). That's fine with one attacker in a lab, but not in production.
+- **Whether these rules hold up under real traffic.** My lab has a handful of users and almost no background noise.
+
+## What I built
+
+### Infrastructure
+
+I deployed a Caldera server with Docker Compose on its own Ubuntu VM (`caldera-server`, `192.168.18.205`), on the same lab network as the AD domain and separate from the ELK stack. Caldera v5.0.0 came up with 2000 stock abilities and 29 stock adversaries.
+
+Getting there took a few rounds of debugging:
+
+- My first build looked like it finished but produced no image, so I did a clean rebuild.
+- The container then crash-looped on a missing compiled Vue frontend (`plugins/magma/dist/assets/`). The cause was a full-directory volume mount in `docker-compose.yml`. It replaced the image's compiled frontend with uncompiled source from the host. Removing that mount fixed it.
+- I tried rebuilding the frontend inside the running container. That failed because the Dockerfile deliberately uninstalls `npm` and `nodejs` after the build to keep the image small.
+- After login worked, the UI still didn't. The compiled frontend had `localhost:8888` hardcoded as its API address. That value is baked in at build time from `plugins/magma/.env` (`VITE_CALDERA_URL`), and `conf/local.yml` doesn't override it. I set it to the VM's real IP and rebuilt.
+- A separate build failed on disk space. The LVM logical volume was only using half the VM's disk. I fixed it with `lvextend -l +100%FREE` and `resize2fs`, then cleared old build layers with `docker system prune -a --volumes`.
+
+### Custom abilities
+
+Caldera's Stockpile plugin only ships a native ability for LSASS credential dumping (T1003.001). Its Kerberoasting abilities (Rubeus, WinPwn) are Windows-only, and my Sandcat agent runs on Kali Linux. So I wrote four custom abilities around Impacket (`GetUserSPNs.py`, `GetNPUsers.py`, `secretsdump.py`) and Kerbrute. They're in [`abilities/`](abilities/).
+
+Two problems came up while writing them:
+
+- I assumed Caldera v5 used a generic regex parser. It doesn't. It uses per-tool parser modules with `source`, `edge` and `target` fields, and my guess caused a silent `TypeError('ParserConfig.__init__()')` on load. There's no built-in parser for raw Impacket output, so I removed the `parsers:` block from all four abilities. Results are captured as raw output.
+- Two of the ability files (password spray and DCSync) were saved as 0-byte files after a `nano` paste failed without an error. I caught it by checking every file with `cat` and `wc -l` before restarting the container.
+
+### Agent and operation
+
+I deployed a Sandcat agent on the Kali VM (`192.168.18.70`) in group `red`, running as root under the process name `splunkd`. Then I built the `AD Credential Access Chain` adversary profile ([`adversary-profiles/`](adversary-profiles/)), which runs the four abilities in the order an internal attacker would likely try them:
+
+```
+Password Spray (Kerbrute)
+  -> Kerberoasting (GetUserSPNs.py)
+  -> AS-REP Roasting (GetNPUsers.py)
+  -> DCSync (secretsdump.py)
+```
+
+I left LLMNR/NBT-NS poisoning (T1557.001) out of the profile. Stockpile's only ability for it uses Inveigh, which is Windows-only. I kept it in the results as a known gap from my earlier manual Responder test. See [`validation/llmnr-known-gap.md`](validation/llmnr-known-gap.md).
+
+## Repo layout
+
+```
+abilities/                         The four custom Caldera abilities
+adversary-profiles/                The AD Credential Access Chain profile
+validation/
+  detection-results.md             Per-technique results, findings and evidence
+  kibana-rules.md                  The four Kibana alerting rules
+  llmnr-known-gap.md               Why LLMNR poisoning is undetected
+  evidence/                        Screenshots, one folder per stage
+attack-navigator-heatmap.json      ATT&CK Navigator layer
+purple-team-automation-report.md   The full write-up
+```
+
+## How to reproduce
+
+> Run this only against a lab you own and are authorised to test.
+
+### Prerequisites
+
+- AD lab: a Windows Server domain controller and a Windows 10 client
+- Telemetry: Sysmon and Winlogbeat shipping to Elastic Stack
+- Detections: the four Kibana alerting rules in [`validation/kibana-rules.md`](validation/kibana-rules.md). A saved query isn't enough; it has to be an enabled rule.
+- Winlogbeat on the DC running as a service with startup type Automatic, and only one copy running
+- Caldera server: an Ubuntu VM with Docker Compose and Caldera v5.0.0
+- Attacker host: a Kali VM with Impacket and Kerbrute
+
+### Steps
+
+1. **Deploy Caldera.** Before building, set `VITE_CALDERA_URL` in `plugins/magma/.env` to the VM's real IP. It's baked in at build time. Don't mount the whole project directory as a volume, or it will overwrite the compiled frontend.
+2. **Import the content.** Copy `abilities/` into Caldera's abilities directory and `adversary-profiles/` into its adversaries directory, then restart. Check that AD Credential Access Chain appears under Adversaries.
+3. **Deploy the agent.** Deploy a Sandcat (Linux) agent on the Kali VM in group `red`.
+4. **Run the operation** with the AD Credential Access Chain adversary against group `red`. Note the start and end time.
+5. **Check for alerts, not just events.** Wait 10 to 15 minutes, then open the rules Logs tab for the operation window and confirm each rule raised an alert. Keep the host awake the whole time, because a paused ELK VM stops every rule.
 
 ## Next steps
 
-1. Fix Sysmon configuration (enable Event ID 3 and 22) to close the LLMNR gap.
-2. Write and tune a new Sigma rule for LLMNR/NBT-NS poisoning.
-3. Re-run this operation to confirm the fix and update the heatmap.
-4. Feeds into the broader SOC projects roadmap (Project D and beyond).
+1. Confirm or rule out the `j.jenkins` explanation for the extra AS-REP alerts, and require pre-authentication on every account if it holds.
+2. Fix the source IP field so the password spray rule can group by attacker and count distinct usernames.
+3. Bring the Sigma rules in [Detection-Engineering](https://github.com/joshuagodwin7929/Detection-Engineering) in line with the deployed rules (DCSync field, `svc_sql` allow-list, 4771 for password spray).
+4. Enable Sysmon Event IDs 3 and 22 and build the LLMNR rule.
+5. Run DCSync inside the full operation, so all four alerts come from one run.
+
+## Credits
+
+Caldera is by MITRE. Impacket is by Fortra. Kerbrute is by ropnop. Everything else in this repo is my own work on my own lab.
