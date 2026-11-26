@@ -6,7 +6,7 @@
     "layer": "4.5"
   },
   "domain": "enterprise-attack",
-  "description": "Results of the Caldera 'AD Credential Access Chain' operation (22 Sep 2026), revised 25 Nov 2026. Green means a deployed rule raised an alert. Yellow means the attack's events reached Elastic but no rule alerted. Red means a gap: no events, or a rule that cannot match the attack. No technique is green yet.",
+  "description": "Caldera 'AD Credential Access Chain' detection coverage. Green: a deployed Kibana rule raised an alert during the November 2026 re-test. Red: gap. The original September version wrongly showed four green cells based on raw event searches; see validation/detection-results.md.",
   "filters": {
     "platforms": [
       "Windows",
@@ -27,9 +27,9 @@
     {
       "techniqueID": "T1110.003",
       "tactic": "credential-access",
-      "color": "#F44336",
-      "score": 0,
-      "comment": "Password Spraying via Kerbrute. GAP. Events reached Elastic as 4771 (28 hits), but no rule was deployed, and the Sigma rule counts 4625, which Kerbrute never produces.",
+      "color": "#8BC34A",
+      "score": 100,
+      "comment": "Password Spraying via Kerbrute. Alert at 25 Nov 2026 23:31:07 UTC. Rule: event.code:4771, count > 5 in 15 min across all documents. Cannot group by source IP yet (IP fields empty on 4771).",
       "enabled": true,
       "metadata": [
         {
@@ -38,16 +38,16 @@
         },
         {
           "name": "Status",
-          "value": "Gap: rule cannot match 4771"
+          "value": "Detected, alert confirmed"
         }
       ]
     },
     {
       "techniqueID": "T1558.003",
       "tactic": "credential-access",
-      "color": "#FFEB3B",
-      "score": 50,
-      "comment": "Kerberoasting via GetUserSPNs.py. Events reached Elastic as 4769 with RC4 0x17 (2 hits). No alerting rule was deployed. The tuned Sigma rule also allow-lists svc_sql, the account this operation roasts.",
+      "color": "#8BC34A",
+      "score": 100,
+      "comment": "Kerberoasting via GetUserSPNs.py. Alert at 25 Nov 2026 04:58:45 UTC. Rule: 4769 with RC4 (0x17), excluding krbtgt and machine accounts.",
       "enabled": true,
       "metadata": [
         {
@@ -56,16 +56,16 @@
         },
         {
           "name": "Status",
-          "value": "Telemetry only, no alert"
+          "value": "Detected, alert confirmed"
         }
       ]
     },
     {
       "techniqueID": "T1558.004",
       "tactic": "credential-access",
-      "color": "#FFEB3B",
-      "score": 50,
-      "comment": "AS-REP Roasting via GetNPUsers.py. Events reached Elastic as 4768 with PreAuthType 0 for j.jenkins (8 hits). No alerting rule was deployed.",
+      "color": "#8BC34A",
+      "score": 100,
+      "comment": "AS-REP Roasting via GetNPUsers.py. Alert at 25 Nov 2026 05:02:06 UTC. Rule: 4768 with PreAuthType 0. Also alerted outside AS-REP activity; suspected normal logins by j.jenkins, not yet confirmed.",
       "enabled": true,
       "metadata": [
         {
@@ -74,16 +74,16 @@
         },
         {
           "name": "Status",
-          "value": "Telemetry only, no alert"
+          "value": "Detected, alert confirmed"
         }
       ]
     },
     {
       "techniqueID": "T1003.006",
       "tactic": "credential-access",
-      "color": "#FFEB3B",
-      "score": 50,
-      "comment": "DCSync via secretsdump.py. Events reached Elastic as 4662 (8 hits). The DCSync rule was deployed and ran 27 times on 22 Sep, but raised 0 alerts. Cause not yet found.",
+      "color": "#8BC34A",
+      "score": 100,
+      "comment": "DCSync via secretsdump.py. Alert at 25 Nov 2026 03:45:33 UTC. Rule: 4662 with the Get-Changes-All GUID as a phrase, excluding machine accounts. The September wildcard query could never match.",
       "enabled": true,
       "metadata": [
         {
@@ -92,7 +92,7 @@
         },
         {
           "name": "Status",
-          "value": "Telemetry only, no alert"
+          "value": "Detected, alert confirmed"
         }
       ]
     },
@@ -149,7 +149,7 @@
     },
     {
       "name": "Detection Source",
-      "value": "Detection-Engineering repo v0.2.0 (Sigma rules compiled to Elastic/KQL)"
+      "value": "Kibana Elasticsearch query rules (validation/kibana-rules.md)"
     }
   ],
   "showTacticRowBackground": true,
