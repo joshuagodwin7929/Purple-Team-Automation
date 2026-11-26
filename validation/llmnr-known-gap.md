@@ -2,7 +2,7 @@
 
 ## Why it isn't in the Caldera operation
 
-Stockpile's only ability for LLMNR/NBT-NS poisoning uses Inveigh, which runs on Windows only. My Sandcat agent runs on Kali Linux, so it can't execute it. Instead of dropping the technique, I kept it as a known gap from an earlier manual test in my [AD + ELK lab](https://github.com/joshuagodwin7929/Cybersecurity-Labs/tree/main/03-Active-Directory-ELK-SIEM-Lab).
+Stockpile's only ability for LLMNR/NBT-NS poisoning uses Inveigh, which runs on Windows only. My Sandcat agent runs on Kali Linux, so it can't execute it. Instead of dropping the technique, I kept it as a known gap from an earlier manual test in my [AD + ELK lab](https://github.com/joshuagodwin7929/AD-Attack-Defense-Lab/tree/main/03-Active-Directory-ELK-SIEM-Lab).
 
 ## What I found
 
