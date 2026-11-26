@@ -63,11 +63,11 @@ Problems 2, 4 and 5 are all the same kind of failure: the pipeline between the a
 
 ## 6. Open questions
 
-**AS-REP noise.** The AS-REP rule also alerted at 04:57:06, before the AS-REP ability ran, and at 23:31:07, during the password spray. My working explanation is that `j.jenkins` doesn't require Kerberos pre-authentication, so any login by that account produces a 4768 with `PreAuthType: 0`. I haven't confirmed this yet.
+**AS-REP noise (resolved).** The AS-REP rule also alerted at 04:57:06, before the AS-REP ability ran, and at 23:31:07, during the password spray. I confirmed `j.jenkins` has pre-authentication disabled and that the 23:31 alert came from a normal `j.jenkins` logon. Filtering on RC4 *ticket* encryption would have hidden the attack too, so I rejected it. Filtering on RC4 *session key* encryption kept the attack and dropped the noise in a test against the recorded events. The Kibana rule still needs updating and a fresh alert.
 
 **Password spray attribution.** The rule can't say which IP is spraying. In production that needs an ingest pipeline that copies the client IP into a keyword field, or a rule type that counts distinct usernames per source.
 
-**Sigma drift.** The deployed rules now differ from the Sigma rules in my Detection-Engineering repo: the DCSync field, the `svc_sql` allow-list on Kerberoasting, and 4771 for password spray. The Sigma rules need updating to match what actually works.
+**Sigma drift (resolved).** Detection-Engineering v0.3.0 brought the Sigma rules in line with the deployed rules and added CI. Where the deployed DCSync query still differs, it's documented and explained in that repo's `LAB-OVERRIDES.md`.
 
 ## 7. Gap analysis
 
@@ -75,8 +75,6 @@ Problems 2, 4 and 5 are all the same kind of failure: the pipeline between the a
 
 ## 8. Next steps
 
-1. Confirm or rule out the `j.jenkins` explanation, and require pre-authentication on every account.
+1. Add the `SessionKeyEncryptionType` condition to the Kibana AS-REP rule and confirm it still alerts on the attack.
 2. Fix the source IP field so the password spray rule can group by attacker.
-3. Update the Sigma rules in Detection-Engineering to match the deployed rules.
-4. Enable Sysmon Event IDs 3 and 22, then build and test an LLMNR rule.
-5. Run DCSync inside the full operation, so all four alerts come from one run.
+3. Enable Sysmon Event IDs 3 and 22, then build and test an LLMNR rule.

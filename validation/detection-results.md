@@ -39,7 +39,35 @@ The full operation ran Kerberoasting at 04:55:37 and again at 04:57:49. The rule
 
 The AS-REP ability ran at 04:59:26 and the rule alerted at 05:02:06.
 
-The same rule also alerted at 04:57:06, two minutes *before* the AS-REP ability ran, and again at 23:31:07 alongside the password spray. My working explanation is that `j.jenkins` is configured not to require Kerberos pre-authentication (that's what makes it AS-REP-roastable in this lab), so any Kerberos login for that account produces a 4768 with `PreAuthType: 0`. Earlier abilities and the spray both touch `j.jenkins`. I haven't confirmed this yet. If it holds, the rule can't tell an attacker's AS-REP request from a normal login by that account, and the real fix is to require pre-authentication on every account.
+The same rule also alerted when no AS-REP ability was running: at 04:57:06, and at 23:31:07 alongside the password spray. I traced the cause.
+
+**The cause: normal logons by `j.jenkins`.** That account has pre-authentication disabled on purpose, so the lab can be AS-REP Roasted:
+
+![j.jenkins has pre-auth disabled](evidence/10-asrep-noise/01-jjenkins-preauth-disabled.png)
+
+So every Kerberos logon by `j.jenkins` produces a 4768 with `PreAuthType: 0`, which is all the rule looked for. The event behind the 23:31 alert is a successful `j.jenkins` logon at 23:29:24 during the spray:
+
+![Noise event: j.jenkins, AES](evidence/10-asrep-noise/02-noise-event-jjenkins-aes.png)
+
+**First fix: filter on RC4 ticket encryption. Rejected.** Attack tools want an RC4 reply because it cracks easily, so I added `TicketEncryptionType: 0x17`. Over the attack window that returned 0 hits. The attack's ticket was AES too, so the filter would have hidden the attack.
+
+![Ticket RC4 filter, 0 hits in the attack window](evidence/10-asrep-noise/03-rejected-ticket-rc4-filter-0-hits.png)
+
+**Second fix: filter on the session key encryption type. Kept.** The attack event itself shows the difference. The tool advertised RC4 only, so the part an attacker cracks offline came back as RC4 (`Session Encryption Type: 0x17`), while the ticket stayed AES because it's encrypted with the `krbtgt` key.
+
+![Attack event: session key RC4](evidence/10-asrep-noise/04-attack-event-session-key-rc4.png)
+
+| Window (25 Nov, UTC) | With `SessionKeyEncryptionType: 0x17` | Meaning |
+|---|---|---|
+| 04:50 to 05:00 (attack) | 3 hits | The AS-REP ability (04:59:35), plus Impacket logging in as `j.jenkins` for the two Kerberoasting steps |
+| 23:20 to 23:35 (noise) | 0 hits | Normal `j.jenkins` logons are gone |
+
+![Tuned filter, attack window](evidence/10-asrep-noise/05-tuned-filter-attack-window-3-hits.png)
+![Tuned filter, noise window](evidence/10-asrep-noise/06-tuned-filter-noise-window-0-hits.png)
+
+The two Kerberoasting matches are Impacket authenticating as the pre-auth-disabled account and asking for RC4, which is attacker tooling, not noise. This change is in [Detection-Engineering v0.3.1](https://github.com/joshuagodwin7929/Detection-Engineering/blob/main/tuning/false_positive_scenarios.md). I tested it against recorded events in Discover. The Kibana rule still needs the same condition and a fresh alert before it counts as validated.
+
+In a real environment the better fix is to require pre-authentication on every account. Then any `PreAuthType: 0` is suspicious by itself.
 
 ### Password Spraying (T1110.003)
 

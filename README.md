@@ -41,7 +41,7 @@ The main thing I took from this: a detection isn't coverage until it's deployed,
 
 ## What I can't tell you yet
 
-- **Whether the AS-REP rule is noisy.** It also alerted twice when no AS-REP ability was running. My guess is that `j.jenkins` doesn't require pre-authentication, so every login by that account looks like AS-REP Roasting. I haven't confirmed it yet.
+- **Whether the tuned AS-REP rule alerts as well as it searches.** The original rule also fired on normal logons by `j.jenkins`, which has pre-authentication disabled on purpose. I confirmed that and found a filter that keeps the attack and drops the noise ([details](validation/detection-results.md#as-rep-roasting-t1558004)), but so far I've only tested it against recorded events in Discover.
 - **Which host is spraying.** The password spray rule counts failures across the whole domain, because I couldn't group by source IP (problem 6). That's fine with one attacker in a lab, but not in production.
 - **Whether these rules hold up under real traffic.** My lab has a handful of users and almost no background noise.
 
@@ -118,11 +118,12 @@ purple-team-automation-report.md   The full write-up
 
 ## Next steps
 
-1. Confirm or rule out the `j.jenkins` explanation for the extra AS-REP alerts, and require pre-authentication on every account if it holds.
+1. ~~Confirm the `j.jenkins` explanation for the extra AS-REP alerts.~~ Done: confirmed, and the rule tuned on `SessionKeyEncryptionType` ([details](validation/detection-results.md#as-rep-roasting-t1558004)). Still to do: add the condition to the Kibana rule and get a fresh alert.
 2. Fix the source IP field so the password spray rule can group by attacker and count distinct usernames.
-3. Bring the Sigma rules in [Detection-Engineering](https://github.com/joshuagodwin7929/Detection-Engineering) in line with the deployed rules (DCSync field, `svc_sql` allow-list, 4771 for password spray).
+3. ~~Bring the Sigma rules in Detection-Engineering in line with the deployed rules.~~ Done in [Detection-Engineering v0.3.0](https://github.com/joshuagodwin7929/Detection-Engineering/blob/main/CHANGELOG.md), which also added CI.
 4. Enable Sysmon Event IDs 3 and 22 and build the LLMNR rule.
-5. Run DCSync inside the full operation, so all four alerts come from one run.
+
+DCSync ran in the same Caldera operation as the other three, about 70 minutes earlier, as a standalone test. Caldera's planner didn't run it again when the rest of the chain continued, so its alert comes from that first run.
 
 ## Credits
 
