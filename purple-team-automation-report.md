@@ -36,7 +36,7 @@ LLMNR poisoning isn't in the Caldera profile because Stockpile's only ability fo
 |---|---|---|---|
 | Password Spraying | `event.code:4771`, more than 5 in 15 minutes | 25 Nov, 23:31:07 | ✅ Detected |
 | Kerberoasting | 4769 with RC4 `0x17`, not krbtgt or machine accounts | 25 Nov, 04:58:45 | ✅ Detected |
-| AS-REP Roasting | 4768 with `PreAuthType: 0` | 25 Nov, 05:02:06 | ✅ Detected |
+| AS-REP Roasting | 4768 with `PreAuthType: 0` and RC4 session key | 26 Nov, 01:42:07 (tuned rule) | ✅ Detected |
 | DCSync | 4662 with the Get-Changes-All GUID, not machine accounts | 25 Nov, 03:45:33 | ✅ Detected |
 | LLMNR Poisoning | none | none | ❌ Gap |
 
@@ -63,7 +63,7 @@ Problems 2, 4 and 5 are all the same kind of failure: the pipeline between the a
 
 ## 6. Open questions
 
-**AS-REP noise (resolved).** The AS-REP rule also alerted at 04:57:06, before the AS-REP ability ran, and at 23:31:07, during the password spray. I confirmed `j.jenkins` has pre-authentication disabled and that the 23:31 alert came from a normal `j.jenkins` logon. Filtering on RC4 *ticket* encryption would have hidden the attack too, so I rejected it. Filtering on RC4 *session key* encryption kept the attack and dropped the noise in a test against the recorded events. The Kibana rule still needs updating and a fresh alert.
+**AS-REP noise (resolved).** The AS-REP rule also alerted at 04:57:06, before the AS-REP ability ran, and at 23:31:07, during the password spray. I confirmed `j.jenkins` has pre-authentication disabled and that the 23:31 alert came from a normal `j.jenkins` logon. Filtering on RC4 *ticket* encryption would have hidden the attack too, so I rejected it. Filtering on RC4 *session key* encryption kept the attack and dropped the noise. The tuned rule raised a live alert against a fresh AS-REP run on 26 November at 01:42:07 UTC.
 
 **Password spray attribution.** The rule can't say which IP is spraying. In production that needs an ingest pipeline that copies the client IP into a keyword field, or a rule type that counts distinct usernames per source.
 
@@ -75,6 +75,5 @@ Problems 2, 4 and 5 are all the same kind of failure: the pipeline between the a
 
 ## 8. Next steps
 
-1. Add the `SessionKeyEncryptionType` condition to the Kibana AS-REP rule and confirm it still alerts on the attack.
-2. Fix the source IP field so the password spray rule can group by attacker.
-3. Enable Sysmon Event IDs 3 and 22, then build and test an LLMNR rule.
+1. Fix the source IP field so the password spray rule can group by attacker.
+2. Enable Sysmon Event IDs 3 and 22, then build and test an LLMNR rule.

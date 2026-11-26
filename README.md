@@ -14,7 +14,7 @@ I ran a four-step Active Directory credential-access chain through Caldera and c
 |---|---|---|
 | T1110.003 Password Spraying | ✅ Alert | 25 Nov 2026, 23:31:07 |
 | T1558.003 Kerberoasting | ✅ Alert | 25 Nov 2026, 04:58:45 |
-| T1558.004 AS-REP Roasting | ✅ Alert | 25 Nov 2026, 05:02:06 |
+| T1558.004 AS-REP Roasting | ✅ Alert (tuned rule) | 26 Nov 2026, 01:42:07 |
 | T1003.006 DCSync | ✅ Alert | 25 Nov 2026, 03:45:33 |
 | T1557.001 LLMNR/NBT-NS Poisoning | ❌ Gap: no telemetry | n/a |
 
@@ -41,7 +41,6 @@ The main thing I took from this: a detection isn't coverage until it's deployed,
 
 ## What I can't tell you yet
 
-- **Whether the tuned AS-REP rule alerts as well as it searches.** The original rule also fired on normal logons by `j.jenkins`, which has pre-authentication disabled on purpose. I confirmed that and found a filter that keeps the attack and drops the noise ([details](validation/detection-results.md#as-rep-roasting-t1558004)), but so far I've only tested it against recorded events in Discover.
 - **Which host is spraying.** The password spray rule counts failures across the whole domain, because I couldn't group by source IP (problem 6). That's fine with one attacker in a lab, but not in production.
 - **Whether these rules hold up under real traffic.** My lab has a handful of users and almost no background noise.
 
@@ -118,7 +117,7 @@ purple-team-automation-report.md   The full write-up
 
 ## Next steps
 
-1. ~~Confirm the `j.jenkins` explanation for the extra AS-REP alerts.~~ Done: confirmed, and the rule tuned on `SessionKeyEncryptionType` ([details](validation/detection-results.md#as-rep-roasting-t1558004)). Still to do: add the condition to the Kibana rule and get a fresh alert.
+1. ~~Confirm the `j.jenkins` explanation for the extra AS-REP alerts.~~ Done: confirmed, the rule tuned on `SessionKeyEncryptionType`, and the tuned rule validated with a live alert ([details](validation/detection-results.md#as-rep-roasting-t1558004)).
 2. Fix the source IP field so the password spray rule can group by attacker and count distinct usernames.
 3. ~~Bring the Sigma rules in Detection-Engineering in line with the deployed rules.~~ Done in [Detection-Engineering v0.3.0](https://github.com/joshuagodwin7929/Detection-Engineering/blob/main/CHANGELOG.md), which also added CI.
 4. Enable Sysmon Event IDs 3 and 22 and build the LLMNR rule.

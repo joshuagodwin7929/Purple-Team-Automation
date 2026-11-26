@@ -65,7 +65,7 @@
       "tactic": "credential-access",
       "color": "#8BC34A",
       "score": 100,
-      "comment": "AS-REP Roasting via GetNPUsers.py. Alert at 25 Nov 2026 05:02:06 UTC. Rule: 4768 with PreAuthType 0. Also alerted outside AS-REP activity; suspected normal logins by j.jenkins, not yet confirmed.",
+      "comment": "AS-REP Roasting via GetNPUsers.py. Tuned rule (4768, PreAuthType 0, SessionKeyEncryptionType 0x17) alerted at 26 Nov 2026 01:42:07 UTC. The untuned rule also fired on normal logons by the pre-auth-disabled account j.jenkins.",
       "enabled": true,
       "metadata": [
         {
